@@ -91,7 +91,7 @@ class FbPokerbotParser::MessageParser
     cp = p;
   }
 
-  space_or_end = space | zlen;
+  space_or_end = space+ | zlen;
 
   # card definitions
   suit     = ('s'|'S'|'h'|'H'|'d'|'D'|'c'|'C'){1};
@@ -104,23 +104,21 @@ class FbPokerbotParser::MessageParser
   # seat definitions
   seat         = 'utg'|'utg1'|'utg2'|'utg3'|'lj'|'hj'|'co'|'btn'|'sb'|'bb';
   seat_pos     = '1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10';
-
   amount       = digit+ %parseAmount;
   # ante         = 'a'. digit+;
   # big_blind    = bb . digit+;
   # small_blind  = sb . digit+;
 
-  bet_action   = ('b'|'bet') space digit+;
+  bet_action   = ('b'|'bet') . space+ . digit+;
   call_action  = ('c'|'call');
   check_action = ('ch'|'check');
   fold_action  = ('f'|'fold');
-  raise_action = ('r'|'raise') space digit+;
+  raise_action = ('r'|'raise') . space+ . digit+;
   muck_action  = ('m'|'muck');
   actions      = (bet_action|call_action|check_action|fold_action|muck_action|raise_action);
-  dflt_action  = ('all' space call_action|fold_action|check_action|muck_action) |
-                 (call_action|fold_action|check_action|muck_action) %extractDefaultAction;
-  seat_action  = seat.space.actions %extractSeatAction;
-  seat_actions = seat_action|dflt_action (space seat_action|dflt_action)*;
+  dflt_action  = ('all'.space+)? (call_action|fold_action|check_action|muck_action)  %extractDefaultAction;
+  seat_action  = (seat.space+.actions %extractSeatAction) | dflt_action;
+  seat_actions = seat_action (space+ seat_action)*;
 
 
   cmd_nh    = 'n'|'nh'|'new' >{ @command = COMMANDS['nh']; cp = p };
@@ -158,9 +156,12 @@ class FbPokerbotParser::MessageParser
 
   main := |*
     cmd_nh;
-    '.test-cards' space >{ cp = p } cards;
-    '.test-flop-cards' space > { cp = p} flop_cards;
-    '.test-action' space >{cp =p} seat_actions;
+    '.test card' space >{ cp = p } card;
+    '.test hole-cards' space >{ cp = p } hole_cards;
+    '.test flop-cards' space > { cp = p} flop_cards;
+    '.test seat_action' space >{cp =p} seat_action;
+    '.test default_action' space > {cp =p} dflt_action;
+    '.test seat_actions' space >{cp =p} seat_actions;
     '.test amount' space >{cp = p} amount;
     '.test dflt_action' space >{cp = p} dflt_action;
   *|;

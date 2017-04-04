@@ -71,10 +71,24 @@ class FbPokerbotParser::MessageParser
     cp = p
   }
 
-  action extractOptions {
+  # 10/20/40/... or 1000/2000/100
+  action parseBlindsAnte {
 
   }
 
+  action parseBigBlind {
+
+  }
+
+  action parseSmallBlind {
+
+  }
+
+  action parseAnte {
+
+  }
+
+  
   action extractSeatAction {
     value = data[cp..p].pack('c*').strip
     seat, action, amount = value.split(' ')
@@ -86,7 +100,6 @@ class FbPokerbotParser::MessageParser
   action extractDefaultAction {
     value = data[cp..p].pack('c*').strip
     action = value.split(" ").last
-    p action
     @actions << {seat: 'all', action: ACTIONS.fetch(action,nil), amount: nil}
     cp = p;
   }
@@ -104,11 +117,8 @@ class FbPokerbotParser::MessageParser
   # seat definitions
   seat         = 'utg'|'utg1'|'utg2'|'utg3'|'lj'|'hj'|'co'|'btn'|'sb'|'bb';
   seat_pos     = '1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10';
-  amount       = digit+ %parseAmount;
-  # ante         = 'a'. digit+;
-  # big_blind    = bb . digit+;
-  # small_blind  = sb . digit+;
 
+  # action definitions
   bet_action   = ('b'|'bet') . space+ . digit+;
   call_action  = ('c'|'call');
   check_action = ('ch'|'check');
@@ -119,6 +129,15 @@ class FbPokerbotParser::MessageParser
   dflt_action  = ('all'.space+)? (call_action|fold_action|check_action|muck_action)  %extractDefaultAction;
   seat_action  = (seat.space+.actions %extractSeatAction) | dflt_action;
   seat_actions = seat_action (space+ seat_action)*;
+
+  # nh options definitions
+  # blinds 10/20/40/80  or 1000/2000/100 (tourney)
+  # bb xxx sb xxx a|ante xx
+  blinds       = digit+ . '/' . digit+ ('/'.digit+)? %parseBlindsAnte;
+  big_blind    = 'bb' . space+ . digit+ ("+".digit+)? %parseBigBlind;
+  small_blind  = 'sb' . space+ . digit+; %parseSmallBlind;
+  ante         = ('a'|'ante').space+.digit+; %parseAnte;
+
 
 
   cmd_nh    = 'n'|'nh'|'new' >{ @command = COMMANDS['nh']; cp = p };
@@ -156,14 +175,15 @@ class FbPokerbotParser::MessageParser
 
   main := |*
     cmd_nh;
-    '.test card' space >{ cp = p } card;
-    '.test hole-cards' space >{ cp = p } hole_cards;
-    '.test flop-cards' space > { cp = p} flop_cards;
-    '.test seat_action' space >{cp =p} seat_action;
-    '.test default_action' space > {cp =p} dflt_action;
-    '.test seat_actions' space >{cp =p} seat_actions;
-    '.test amount' space >{cp = p} amount;
-    '.test dflt_action' space >{cp = p} dflt_action;
+    '.test card'           space >{cp = p} card;
+    '.test hole-cards'     space >{cp = p} hole_cards;
+    '.test flop-cards'     space >{cp = p} flop_cards;
+    '.test seat_action'    space >{cp = p} seat_action;
+    '.test default_action' space >{cp = p} dflt_action;
+    '.test seat_actions'   space >{cp = p} seat_actions;
+    '.test amount'         space >{cp = p} amount;
+    '.test dflt_action'    space >{cp = p} dflt_action;
+    '.test blinds'         space >{cp = p} blinds;
   *|;
 
 }%%

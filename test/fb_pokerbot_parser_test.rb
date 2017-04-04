@@ -6,7 +6,8 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     @seats = %w| utg utg1 utg2 utg3 lj hj co btn sb bb|
   end
 
-  # card syntax
+  # card 
+
   test "card parses single card and capitalize value, lowercases suit" do
     result = FbPokerbotParser::MessageParser.new(".test card 10h")
     assert_equal ['10h'], result.cards
@@ -45,7 +46,7 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal ['10h', '5h'], result.hole_cards
   end
 
-  # flop cards
+  # flop-cards
 
   test "#flop parses 3 cards with spaces" do
     result = FbPokerbotParser::MessageParser.new(".test flop-cards 10h 5d 4c")
@@ -66,9 +67,9 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
   end
   
 
-  # Seat Syntax
+  # seat_actions
 
-  test "#seat_actions parses valid seat names, action and amounts" do
+  test "#seat_actions parses all possible valid seat names, action and amounts" do
     @seats.each do |seat|
       result = FbPokerbotParser::MessageParser.new(".test seat_action #{seat} call")
       action = result.actions.first
@@ -111,30 +112,6 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal expected, result.actions
   end
 
-  test '#default_action parses default action with all keyword' do
-    result = FbPokerbotParser::MessageParser.new(".test default_action all check")
-    expected = {:seat=>"all", :action=>:check, :amount=>nil}
-    assert_equal 1, result.actions.count
-    assert_equal expected, result.actions.first
-  end
-
-  test '#default_action parses default action without all keyword' do
-    result = FbPokerbotParser::MessageParser.new(".test default_action call")
-    expected = {:seat=>"all", :action=>:call, :amount=>nil}
-    assert_equal 1, result.actions.count
-    assert_equal expected, result.actions.first
-  end
-
-  test "#seat_actions handles all action as default" do
-    result = FbPokerbotParser::MessageParser.new(".test seat_actions utg b 100 all call")
-    assert_equal 2, result.actions.count
-    expected = [
-      {:seat=>"utg", :action=>:bet, :amount=>100}, 
-      {:seat=>"all", :action=>:call, :amount=>nil}
-    ]
-    assert_equal expected, result.actions    
-  end
-
   test "#seat_actions handles all action without all keyword" do
     result = FbPokerbotParser::MessageParser.new(".test seat_actions utg b 100 c")
     assert_equal 2, result.actions.count
@@ -171,104 +148,42 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal expected, result.actions    
   end
 
+  test "#seat_actions handles all action as default" do
+    result = FbPokerbotParser::MessageParser.new(".test seat_actions utg b 100 all call")
+    assert_equal 2, result.actions.count
+    expected = [
+      {:seat=>"utg", :action=>:bet, :amount=>100}, 
+      {:seat=>"all", :action=>:call, :amount=>nil}
+    ]
+    assert_equal expected, result.actions    
+  end
 
-  # def test_seat_action
-  #   result = FbPokerbotParser::MessageParser.new(".test-action utg b 100")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'utg', result.actions.first.fetch(:seat)
-  #   assert_equal :bet, result.actions.first.fetch(:action)
-  #   assert_equal 100, result.actions.first.fetch(:amount)
+  test "#seat_actions with starting default action and multiple seats" do
+    result = FbPokerbotParser::MessageParser.new(".test seat_actions call utg fold")
+    assert_equal 2, result.actions.count
+    expected = [
+      {:seat=>"all", :action=>:call, :amount=>nil},
+      {:seat=>"utg", :action=>:fold, :amount=>nil} 
+    ]
+    assert_equal expected, result.actions    
+  end
 
-  #   result = FbPokerbotParser::MessageParser.new(".test-action utg1 bet 100")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'utg1', result.actions.first.fetch(:seat)
-  #   assert_equal :bet, result.actions.first.fetch(:action)
-  #   assert_equal 100, result.actions.first.fetch(:amount)
+  # default_actions
 
-  #   result = FbPokerbotParser::MessageParser.new(".test-action utg2 c")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'utg2', result.actions.first.fetch(:seat)
-  #   assert_equal :call, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
+  test '#default_action parses default action with all keyword' do
+    result = FbPokerbotParser::MessageParser.new(".test default_action all check")
+    expected = {:seat=>"all", :action=>:check, :amount=>nil}
+    assert_equal 1, result.actions.count
+    assert_equal expected, result.actions.first
+  end
 
-  #   result = FbPokerbotParser::MessageParser.new(".test-action utg3 call")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'utg3', result.actions.first.fetch(:seat)
-  #   assert_equal :call, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
+  test '#default_action parses default action without all keyword' do
+    result = FbPokerbotParser::MessageParser.new(".test default_action call")
+    expected = {:seat=>"all", :action=>:call, :amount=>nil}
+    assert_equal 1, result.actions.count
+    assert_equal expected, result.actions.first
+  end
 
-  #   result = FbPokerbotParser::MessageParser.new(".test-action lj f")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'lj', result.actions.first.fetch(:seat)
-  #   assert_equal :fold, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action hj fold")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'hj', result.actions.first.fetch(:seat)
-  #   assert_equal :fold, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action co ch")
-  #   p result.actions
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'co', result.actions.first.fetch(:seat)
-  #   assert_equal :check, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action btn check")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'btn', result.actions.first.fetch(:seat)
-  #   assert_equal :check, result.actions.first.fetch(:action)
-  #   assert_nil result.actions.first.fetch(:amount)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action bb r 2")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'bb', result.actions.first.fetch(:seat)
-  #   assert_equal :raise, result.actions.first.fetch(:action)
-  #   assert_equal 2, result.actions.first.fetch(:amount)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action sb raise 12")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'sb', result.actions.first.fetch(:seat)
-  #   assert_equal :raise, result.actions.first.fetch(:action)
-  #   assert_equal 12, result.actions.first.fetch(:amount)
-  # end
-
-  # def test_default_action_with_all_keyword
-  #   result = FbPokerbotParser::MessageParser.new(".test-action all c")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'all', result.actions.first.fetch(:seat)
-  #   assert_equal :call, result.actions.first.fetch(:action)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action all call")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'all', result.actions.first.fetch(:seat)
-  #   assert_equal :call, result.actions.first.fetch(:action)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action all fold")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'all', result.actions.first.fetch(:seat)
-  #   assert_equal :fold, result.actions.first.fetch(:action)
-
-  #   result = FbPokerbotParser::MessageParser.new(".test-action all f")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'all', result.actions.first.fetch(:seat)
-  #   assert_equal :fold, result.actions.first.fetch(:action)
-
-  # end
-
-  # def test_default_action_with_no_keyword
-  #   result = FbPokerbotParser::MessageParser.new(".test dflt_action call")
-  #   assert_equal 1, result.actions.count
-  #   assert_equal 'all', result.actions.first.fetch(:seat)
-  # end
-
-  # def test_multiple_seat_actions 
-  #   result = FbPokerbotParser::MessageParser.new(".test dflt_action sb raise 12 bb call utg1 f")
-  #   assert_equal 3, result.actions.count
-  #   assert_equal ['sb', 'bb', 'utg1'], result.actions.map {|x| x.fetch(:seat)}
-  # end
 
   # # new hand
 

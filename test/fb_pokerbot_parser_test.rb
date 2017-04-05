@@ -184,6 +184,48 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal expected, result.actions.first
   end
 
+  # blinds
+
+  test "#blinds parses 10/20 properly" do
+    result = FbPokerbotParser::MessageParser.new(".test blinds 10/20")
+    assert_equal 10, result.blinds[:sb]
+    assert_equal 20, result.blinds[:bb]
+    assert_nil result.blinds[:ante]
+  end
+
+  test "#blinds parse 1000/2000/100 properly for tourneys" do
+    result = FbPokerbotParser::MessageParser.new(".test blinds 1000/2000/100")
+    assert_equal 1000, result.blinds[:sb]
+    assert_equal 2000, result.blinds[:bb]
+    assert_equal 100, result.blinds[:ante]
+  end
+
+  test "#blinds parse 10/20/40/50 straddle properly for cash games" do
+    result = FbPokerbotParser::MessageParser.new(".test blinds 1/2/4/8")
+    assert_equal 1, result.blinds[:sb]
+    assert_equal 2, result.blinds[:bb]
+    assert_equal [4,8], result.blinds[:straddle]
+  end
+
+  test "#big_blind parses and sets bb and sb properly" do
+    result = FbPokerbotParser::MessageParser.new(".test big_blind bb 2")
+    assert_equal 2, result.blinds[:bb]
+    assert_equal 1, result.blinds[:sb]
+
+    result = FbPokerbotParser::MessageParser.new(".test big_blind bb 5")
+    assert_equal 5, result.blinds[:bb]
+    assert_equal 2, result.blinds[:sb]
+  end
+
+  test "#small_blind parses and sets sb properly" do
+    result = FbPokerbotParser::MessageParser.new(".test small_blind sb 2")
+    assert_equal 2, result.blinds[:sb]
+  end
+
+  test "#ante parses and sets ante properly" do
+    result = FbPokerbotParser::MessageParser.new(".test ante ante 100")
+    assert_equal 100, result.blinds[:ante]
+  end
 
   # # new hand
 

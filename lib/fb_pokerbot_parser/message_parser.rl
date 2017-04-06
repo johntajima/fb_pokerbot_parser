@@ -2,6 +2,7 @@
 class FbPokerbotParser::MessageParser
 
   attr_accessor :command, 
+                :status,
                 :options, 
                 :cards, 
                 :actions, 
@@ -12,28 +13,14 @@ class FbPokerbotParser::MessageParser
 
 
   COMMANDS = {
-    "n"        => :new_hand,
     "nh"       => :new_hand,
-    "new"      => :new_hand,
     "nt"       => :new_tourney_hand,
-    "nht"      => :new_tourney_hand,
-    "h"        => :hole,
-    "hole"     => :hole,
-    "p"        => :preflop_action,
+    "hero"     => :hero,
     "pre"      => :preflop_action,
-    "preflop"  => :preflop_action,
-    "f"        => :flop,
     "flop"     => :flop,
-    "fa"       => :flop_action,
-    "t"        => :turn,
     "turn"     => :turn,
-    "ta"       => :turn_action,
-    "r"        => :river,
     "river"    => :river,
-    "ra"       => :river_action,
-    "sh"       => :showdown,
     "show"     => :showdown,
-    "showdown" => :showdown,
     "c"        => :set,
     "config"   => :set,
     "set"      => :set 
@@ -52,6 +39,12 @@ class FbPokerbotParser::MessageParser
     'check' => :check,
     'm'     => :muck,
     'muck'  => :muck
+  }
+
+  NEW_HAND_OPTIONS = {
+    'b' => :button,
+    'p' => :players,
+    'h' => :hero
   }
 
 %%{
@@ -76,7 +69,7 @@ class FbPokerbotParser::MessageParser
 
   action parseBlinds {
     parseBlinds(data[cp..(p-1)].pack('c*').strip)
-    cp = p
+   # cp = p
   }
 
   action parseBigBlind {
@@ -111,6 +104,11 @@ class FbPokerbotParser::MessageParser
     cp = p
   }
 
+  action parseSeatingOptions {
+    parse_seating_options(data[cp..p].pack('c*').strip)
+    cp = p
+  }
+
   space_or_end = space+ | zlen;
 
   # card definitions
@@ -140,48 +138,40 @@ class FbPokerbotParser::MessageParser
   # nh options definitions
   # blinds 10/20/40/80  or 1000/2000/100 (tourney)
   # bb xxx sb xxx a|ante xx
-  blinds       = digit+ . '/' . digit+ ('/'.digit+)* %parseBlinds;
-  big_blind    = 'bb' . space+ . digit+ >{cp = p} %parseBigBlind;
-  small_blind  = 'sb' . space+ . digit+ >{cp = p} %parseSmallBlind;
-  ante         = ('a'|'ante').space+.digit+ >{cp = p} %parseAnte;
-  straddles    = 'straddle'.space+.digit+;
+  blinds       = (digit+.('/'.digit+)+)  %parseBlinds;
+  big_blind    = 'bb' . space+ . digit+ >{cp = p} %parseBigBlind space_or_end; 
+  small_blind  = 'sb' . space+ . digit+ >{cp = p} %parseSmallBlind space_or_end;
+  ante         = ('a'|'ante').space+.digit+ >{cp = p} %parseAnte space_or_end;
+  straddles    = 'straddle'.space+.digit+; # todo
+  seating      = seat_pos . [bhp]{1,3} %parseSeatingOptions;
+  seating_opts = seating . (space+ . seating)* ;
 
+  nh_options = (seating_opts|blinds|big_blind|small_blind) (space+.(seating_opts|blinds|big_blind|small_blind))*; 
 
-  cmd_nh    = 'n'|'nh'|'new' >{ @command = COMMANDS['nh']; cp = p };
-  cmd_nth   = 'nt'|'nht' >{ @command = COMMANDS['nht']; cp = p };
-  cmd_hole  = 'h'|'hole' >{ @command = COMMANDS['h']; cp = p };
-  cmd_pre   = 'p'|'pre'|'preflop' >{ @command = COMMANDS['pre']; cp = p };
-  cmd_flop  = 'f'|'flop' >{ @command = COMMANDS['flop']; cp = p };
-  cmd_fa    = 'fa' >{ @command = COMMANDS['fa']; cp = p };
-  cmd_turn  = 't'|'turn' >{ @command = COMMANDS['turn']; cp = p };
-  cmd_ta    = 'ta' >{ @command = COMMANDS['ta']; cp = p };
-  cmd_river = 'r'|'river' >{ @command = COMMANDS['river']; cp = p };
-  cmd_ra    = 'ra' >{ @command = COMMANDS['ra']; cp = p };
-  cmd_show  = 'sh'|'show'|'showdown' >{ @command = COMMANDS['sh']; cp = p };
-  cmd_edit  = 'e'|'edit' >{ @command = COMMANDS['e']; cp = p };
-  cmd_set   = 'c'|'config'|'set' >{ @command = COMMANDS['set']; cp = p };
-  
-  nh_options = any+;
+  new_hand   = ('n'|'nh'|'new'|'new hand') %{ set_cmd('nh'); cp = p };
+  new_hand_t = ('nt'|'nht'|'new tourney')  %{ set_cmd('nt');  cp = p};
+  hero       = ('h'|'hero')                %{ set_cmd('hero'); cp = p };
+  preflop    = ('p'|'pre'|'preflop')       %{ set_cmd('pre'); cp = p };
+  flop       = ('f'|'flop')                %{ set_cmd('flop'); cp = p };
+  turn       = ('t'|'turn')                %{ set_cmd('turn'); cp = p };
+  river      = ('r'|'river')               %{ set_cmd('river'); cp = p };
+  showdown   = ('sh'|'show'|'showdown')    %{ set_cmd('show'); cp = p };
 
-  #new_hand  = cmd_nh space %extractCommand space nh_options %extractOptions;
+  status_request = (new_hand|new_hand_t|hero|preflop|flop|turn|river|showdown).zlen %{ set_status };
 
+  cmd_nh    = (new_hand . space+) nh_options*;
+  cmd_nht   = (new_hand_t . space+) nh_options*;
+  cmd_hero  = (hero . space+) ;
+  cmd_pre   = (preflop . space+);
+  cmd_flop  = (flop . space+);
+  cmd_turn  = (turn . space+);
+  cmd_river = (river . space+);
+  cmd_show  = (showdown . space+);
 
-  # commands     = cmd_newhand | 
-  #                cmd_newtourneyhand | 
-  #                cmd_hero | 
-  #                cmd_preflop_action |
-  #                cmd_flop | 
-  #                cmd_flop_action | 
-  #                cmd_turn | 
-  #                cmd_turn_action | 
-  #                cmd_river |
-  #                cmd_river_action |
-  #                cmd_showdown |
-  #                cmd_edit |
-  #                cmd_set; 
+  commands = (cmd_nh|cmd_nht);
 
   main := |*
-    cmd_nh;
+    commands;
     '.test card'           space >{cp = p} card;
     '.test hole-cards'     space >{cp = p} hole_cards;
     '.test flop-cards'     space >{cp = p} flop_cards;
@@ -192,6 +182,7 @@ class FbPokerbotParser::MessageParser
     '.test big_blind'      space >{cp = p} big_blind;
     '.test small_blind'    space >{cp = p} small_blind;
     '.test ante'           space >{cp = p} ante;
+    '.test status'         space >{cp = p} status_request;
   *|;
 
 }%%
@@ -202,6 +193,7 @@ class FbPokerbotParser::MessageParser
     eof  = data.length
     cp   = 0
 
+    @status     = false   # true if status request
     @command    = ""
     @cards      = []
     @options    = {}
@@ -217,6 +209,14 @@ class FbPokerbotParser::MessageParser
     %% write exec;
   end
 
+  def set_cmd(key)
+    @command = COMMANDS.fetch(key, nil)
+  end
+
+  def set_status
+    @status = true
+  end
+
   def parseCard(card)
     suit = card[-1..-1]
     val  = card[0..-2]
@@ -224,6 +224,7 @@ class FbPokerbotParser::MessageParser
   end
 
   def parseBlinds(data)
+    p "parsing blinds for #{data}"
     sb, bb, *straddles = data.split("/")
     @blinds[:sb] = sb.to_i
     @blinds[:bb] = bb.to_i
@@ -240,5 +241,13 @@ class FbPokerbotParser::MessageParser
     @blinds[:sb] = (@blinds[:bb] / 2) if @blinds[:sb].nil?
   end
 
+  def parse_seating_options(data)
+    num = data.to_i 
+    options = data.gsub(num.to_s,'')
+    options.split('').each do |val|
+      next unless key = NEW_HAND_OPTIONS.fetch(val,nil)
+      @options[key] = num
+    end
+  end
     
 end

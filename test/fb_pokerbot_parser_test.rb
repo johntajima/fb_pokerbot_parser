@@ -351,7 +351,7 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
   end
 
   # hero/hole cards & stacks
-  
+
   test "#hero accepts hole cards and stack size options" do
     msg = FbPokerbotParser::MessageParser.new("hero KdAh 200")
     expected = {:stack => 200}
@@ -362,9 +362,38 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
   # preflop action 
 
   test "#preflop accepts hole cards and betting action" do
-#    msg = FbPokerbotParser::MessageParser.new("pre AhQd check btn bet 10 fold co call")
+    msg = FbPokerbotParser::MessageParser.new("pre check btn bet 10 fold co call")
+    assert_equal :preflop, msg.command
+    assert_equal 4, msg.actions.count
+    assert_equal [:check, :bet, :fold, :call], msg.actions.map {|x| x.fetch(:action)}
   end
 
+
+  # flop action
+
+  test "#flop accepts flop cards only" do
+    msg = FbPokerbotParser::MessageParser.new("flop ahqhjh")
+    assert_equal :flop, msg.command
+    assert_equal ["Ah", "Qh", "Jh"], msg.cards
+  end
+
+  test "#flop accepts flop cards and actions" do
+    msg = FbPokerbotParser::MessageParser.new("flop ahqhjh check btn bet 10 fold")
+    assert_equal :flop, msg.command
+    assert_equal ["Ah", "Qh", "Jh"], msg.cards
+    assert_equal 3, msg.actions.count
+
+    msg = FbPokerbotParser::MessageParser.new("flop check btn bet 10 fold ahqhjh ")
+    assert_equal :flop, msg.command
+    assert_equal ["Ah", "Qh", "Jh"], msg.cards
+    assert_equal 3, msg.actions.count
+  end
+
+  test "#flop accepts actions only" do
+    msg = FbPokerbotParser::MessageParser.new("flop check btn bet 10 fold")
+    assert_equal :flop, msg.command
+    assert_equal 3, msg.actions.count
+  end
 
 
 

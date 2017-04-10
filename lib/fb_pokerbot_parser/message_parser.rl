@@ -17,7 +17,7 @@ class FbPokerbotParser::MessageParser
     "nh"       => :new_hand,
     "nt"       => :new_tourney_hand,
     "hero"     => :hero,
-    "pre"      => :preflop_action,
+    "pre"      => :preflop,
     "flop"     => :flop,
     "turn"     => :turn,
     "river"    => :river,
@@ -85,9 +85,7 @@ class FbPokerbotParser::MessageParser
   }
 
   action parseAnte {
-
     value = data[cp..(p-1)].pack('c*').strip
-    puts "parsing ante [#{value}]"
     @blinds[:ante] = value.to_i
     cp = p
   }
@@ -108,7 +106,6 @@ class FbPokerbotParser::MessageParser
   }
 
   action parseSeatingOptions {
-    puts "Parsing seat options"
     parse_seating_options(data[cp..p].pack('c*').strip)
     cp = p
   }
@@ -182,18 +179,16 @@ class FbPokerbotParser::MessageParser
               (space+ (blinds|seating_opts|big_blind|small_blind|ante))?;
   hero_opts = space+ (hole_cards|hero_stack)
               (space+ (hole_cards|hero_stack))?; 
-  
   cmd_nh    = new_hand hand_opts;
   cmd_nht   = new_hand_t hand_opts;
   cmd_hero  = hero hero_opts;
-
-  cmd_pre   = (preflop . space+);
-  cmd_flop  = (flop . space+);
-  cmd_turn  = (turn . space+);
+  cmd_pre   = preflop space+ seat_actions;
+  cmd_flop  = flop space+ (flop_cards|seat_actions) (space+ (flop_cards|seat_actions))?;
+  cmd_turn  = (turn  space+);
   cmd_river = (river . space+);
   cmd_show  = (showdown . space+);
 
-  commands = (cmd_nh|cmd_nht|cmd_hero|status_cmd);
+  commands = (cmd_nh|cmd_nht|cmd_hero|cmd_pre|cmd_flop|status_cmd);
 
   main := |*
     commands;
@@ -253,7 +248,6 @@ class FbPokerbotParser::MessageParser
   end
 
   def parseBlinds(data)
-    p "parsing data: [#{data}]"
     sb, bb, *straddles = data.split("/")
     @blinds[:sb] = sb.to_i
     @blinds[:bb] = bb.to_i
@@ -267,13 +261,11 @@ class FbPokerbotParser::MessageParser
   end
 
   def parseBigBlind(data)
-    p "Parsing big blind option #{data}"
     @blinds[:bb] = data.to_i
     @blinds[:sb] = (@blinds[:bb] / 2) if @blinds[:sb].nil?
   end
 
   def parse_seating_options(data)
-    p "parsing seating data #{data}"
     num = data.to_i 
     options = data.gsub(num.to_s,'')
     options.split('').each do |val|
@@ -283,7 +275,6 @@ class FbPokerbotParser::MessageParser
   end
    
   def set_stack_size(data)
-    p "set stack size for #{data}"
     seat, amount = data.split(" ")
     seat = seat.to_sym
     amount = amount.to_i

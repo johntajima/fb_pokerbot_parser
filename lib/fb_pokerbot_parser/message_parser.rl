@@ -2,18 +2,15 @@
 class FbPokerbotParser::MessageParser
 
   attr_accessor :command, 
-                :status,
+                :status_only,
                 :options, 
                 :players,
                 :actions, 
                 :cards, 
-                :winners,
+                :winners
 
-                :hole_cards,                 
-                :flop, :turn, :river,
-                :amount,
-                :blinds,
-                :hero
+  attr_reader :_cards, :_curr_seat
+
 
   VALID_SEATS = %w| utg utg1 utg2 utg3 lj hj co btn sb bb |
 
@@ -58,77 +55,74 @@ class FbPokerbotParser::MessageParser
   machine pokerbot;
 
   action parseCard {
-    parseCard(data[cp..(p-1)].pack('c*').strip)    
+    parse_card(data[cp..(p-1)].pack('c*').strip)    
     cp = p
   }
   action setFlop {
-    @flop = @cards if @cards.count == 3
+    set_flop
   }
 
   action setHoleCards {
-    @hole_cards = @cards if @cards.count == 2
-  }
-
-  action parseAmount {
-    value = data[cp..(p-1)].pack('c*').strip
-    @amount = value.to_i
-    cp = p
+    set_hole_cards
   }
 
   action parseBlinds {
-    parseBlinds(data[cp..(p-1)].pack('c*').strip)
+    val = data[cp..(p-1)].pack('c*').strip
+    parse_blinds(val)
     cp = p
   }
 
   action parseBigBlind {
-    parseBigBlind(data[cp..(p-1)].pack('c*').strip)
+    val = data[cp..(p-1)].pack('c*').strip
+    parse_big_blind(val)
     cp = p
   }
 
   action parseSmallBlind {
-    value = data[cp..(p-1)].pack('c*').strip
-    @blinds[:sb] = value.to_i
+    val = data[cp..(p-1)].pack('c*').strip
+    parse_small_blind(val)
     cp = p
   }
 
   action parseAnte {
-    value = data[cp..(p-1)].pack('c*').strip
-    @blinds[:ante] = value.to_i
+    val = data[cp..(p-1)].pack('c*').strip
+    parse_ante(val)
     cp = p
   }
   
   action extractSeatAction {
-    value = data[cp..p].pack('c*').strip
-    seat, action, amount = value.split(' ')
-    amount = amount.to_i unless amount.nil?
-    @actions << {seat: seat, action: ACTIONS.fetch(action,nil), amount: amount}
+    val = data[cp..p].pack('c*').strip
+    extract_seat_action(val)
     cp = p
   }
 
   action extractDefaultAction {
-    value = data[cp..p].pack('c*').strip
-    action = value.split(" ").last
-    @actions << {seat: 'all', action: ACTIONS.fetch(action,nil), amount: nil}
+    val = data[cp..p].pack('c*').strip
+    extract_default_action(val)
     cp = p
   }
 
   action parseSeatingOptions {
-    parse_seating_options(data[cp..p].pack('c*').strip)
+    val = data[cp..p].pack('c*').strip
+    parse_seating_options(val)
     cp = p
   }
 
   action set_stack_size {
-    set_stack_size(data[cp..p].pack('c*').strip)
+    val = data[cp..p].pack('c*').strip
+    set_stack_size(val)
     cp = p
   }
 
   action set_hero_stack{
-    set_hero_stack(data[cp..p].pack('c*').strip)
+    val = data[cp..p].pack('c*').strip    
+    set_stack(:hero, val)
     cp = p
   }
 
   action parseSeatCards{
-    parse_seat_cards(data[cp..p].pack('c*').strip)
+    val = data[cp..p].pack('c*').strip
+    parse_seat_cards(val)
     cp = p 
   }
 
@@ -213,8 +207,8 @@ class FbPokerbotParser::MessageParser
   cmd_hero  = hero hero_opts;
   cmd_pre   = preflop space+ seat_actions;
   cmd_flop  = flop space+ (flop_cards|seat_actions) (space+ (flop_cards|seat_actions))?;
-  cmd_turn  = turn space+ (card|seat_actions) (space+ (card|seat_actions))?;
-  cmd_river = river space+ (card|seat_actions) (space+ (card|seat_actions))?;
+  cmd_turn  = turn space+ (card|seat_actions) (space+ (card|seat_actions))? %{ assign_cards(:turn) };
+  cmd_river = river space+ (card|seat_actions) (space+ (card|seat_actions))? %{ assign_cards(:river) };
   cmd_show  = showdown space+ seat_cards+;
   cmd_win   = winner space+ (seat|'hero') (space+ (seat|'hero'))* %parseWinners;
 
@@ -291,22 +285,19 @@ class FbPokerbotParser::MessageParser
     eof  = data.length
     cp   = 0
 
-    @status     = false   # true if status request
-    @command    = ""
-    @options    = {}
-    @players    = {}
-    @actions    = []
-    @cards      = []
-    @winners    = []
+    @status_only = false   # true if status_only request
+    @command     = ""
+    @options     = {
+      blinds: {}
+    }
+    @players     = {}
+    @actions     = []
+    @cards       = {}
+    @winners     = []
 
-    @flop       = []
-    @turn       = []
-    @river      = []
-    @hole_cards = []
-    @hero       = {}
-    @blinds     = {}
-    @amount     = nil
+    # temp vars
     @_curr_seat = nil
+    @_cards     = []
 
     %% write init;
     %% write exec;
@@ -314,36 +305,73 @@ class FbPokerbotParser::MessageParser
 
   def set_cmd(key, p, pe)
     @command = COMMANDS.fetch(key, nil)
-    set_status if pe == p
+    set_status_only if pe == p
   end
 
-  def set_status
-    @status = true
+  def set_status_only
+    @status_only = true
   end
 
-  def parseCard(card)
+
+  def parse_card(card)
     suit = card[-1..-1]
     val  = card[0..-2]
-    @cards << "#{val.upcase}#{suit.downcase}"
+    @_cards << "#{val.upcase}#{suit.downcase}"
   end
 
-  def parseBlinds(data)
+  def set_flop
+    return unless @_cards.count == 3
+    assign_cards(:flop)
+  end
+
+  def set_hole_cards
+    return unless @_cards.count == 2
+    assign_cards(:hero)
+  end
+
+  def assign_cards(key)
+    @cards[key] = @_cards.dup
+    @_cards = []
+  end
+
+
+  def parse_blinds(data)
     sb, bb, *straddles = data.split("/")
-    @blinds[:sb] = sb.to_i
-    @blinds[:bb] = bb.to_i
+    @options[:blinds][:sb] = sb.to_i
+    @options[:blinds][:bb] = bb.to_i
     return if straddles.empty?
-    if straddles.count == 1 && straddles.first.to_i < @blinds[:bb]
-      @blinds[:ante] = straddles.first.to_i
+    if straddles.count == 1 && straddles.first.to_i < @options[:blinds].fetch(:bb, 0)
+      @options[:blinds][:ante] = straddles.first.to_i
     else
-      @blinds[:straddle] = straddles.map(&:to_i)
+      @options[:blinds][:straddle] = straddles.map(&:to_i)
     end
-    @blinds
+    @options[:blinds]
   end
 
-  def parseBigBlind(data)
-    @blinds[:bb] = data.to_i
-    @blinds[:sb] = (@blinds[:bb] / 2) if @blinds[:sb].nil?
+  def parse_big_blind(data)
+    @options[:blinds][:bb] = data.to_i
+    @options[:blinds][:sb] = (@options[:blinds][:bb] / 2) if @options[:blinds][:sb].nil?
   end
+
+  def parse_small_blind(data)
+    @options[:blinds][:sb] = data.to_i
+  end
+
+  def parse_ante(data)
+    @options[:blinds][:ante] = data.to_i
+  end
+
+  def extract_seat_action(data)
+    seat, action, amount = data.split(' ')
+    amount = amount.to_i unless amount.nil?
+    @actions << {seat: seat, action: ACTIONS.fetch(action,nil), amount: amount}
+  end
+
+  def extract_default_action(data)
+    action = data.split(" ").last
+    @actions << {seat: 'all', action: ACTIONS.fetch(action,nil), amount: nil}
+  end
+
 
   def parse_seating_options(data)
     num = data.to_i 
@@ -357,13 +385,12 @@ class FbPokerbotParser::MessageParser
   def set_stack_size(data)
     seat, amount = data.split(" ")
     seat = seat.to_sym
-    amount = amount.to_i
-    @players[key] ||= {}
-    @players[key][:stack] = amount
+    set_stack(seat, amount)
   end
 
-  def set_hero_stack(data)
-    @hero[:stack] = data.to_i
+  def set_stack(seat, amount)
+    @players[seat] ||= {}
+    @players[seat][:stack] = amount.to_i
   end
 
   def set_curr_seat(data)
@@ -372,8 +399,8 @@ class FbPokerbotParser::MessageParser
 
   def assign_cards_to_seat
     @players[@_curr_seat] ||= {}
-    @players[@_curr_seat][:cards] = @cards.dup
-    @cards = []
+    @players[@_curr_seat][:cards] = @_cards.dup
+    @_cards = []
   end
 
   def set_winners(data)
@@ -384,7 +411,7 @@ class FbPokerbotParser::MessageParser
   def to_hash
     {
       command: @command,
-      status_command: @status,
+      status_only: @status_only,
       players: {},
       options: {},
       actions: {},

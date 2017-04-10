@@ -465,6 +465,23 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal ["4d", "4h"], msg.players.fetch(:co).fetch(:cards)
   end
 
+  # winners
+
+  test "#winners sets single sat as a winner" do
+    msg = FbPokerbotParser::MessageParser.new("w btn")
+    assert_equal "btn", msg.winners.first
+  end
+
+  test "#winners allows multiple seats to be the winner" do
+    msg = FbPokerbotParser::MessageParser.new("winner btn co")
+    assert_equal ["btn", "co"], msg.winners
+  end
+
+  test "#winner accepts Hero as the winner" do
+    msg = FbPokerbotParser::MessageParser.new("win hero")
+    assert_equal ["hero"], msg.winners
+  end
+
 
 
 end

@@ -11,6 +11,7 @@ class FbPokerbotParser::MessageParser
                 :flop, :turn, :river,
                 :amount,
                 :blinds,
+                :winners,
                 :hero
 
   VALID_SEATS = %w| utg utg1 utg2 utg3 lj hj co btn sb bb |
@@ -24,9 +25,11 @@ class FbPokerbotParser::MessageParser
     "turn"     => :turn,
     "river"    => :river,
     "show"     => :showdown,
+    'w'        => :winner,
+    'win'      => :winner,
     "c"        => :set,
     "config"   => :set,
-    "set"      => :set 
+    "set"      => :set
   }
 
   ACTIONS = {
@@ -139,6 +142,11 @@ class FbPokerbotParser::MessageParser
     assign_cards_to_seat
   }
 
+  action parseWinners {
+    val = data[cp..(p-1)].pack('c*').strip
+    set_winners(val)
+  }
+
   space_or_end = space+ | zlen;
 
   # card definitions
@@ -190,6 +198,7 @@ class FbPokerbotParser::MessageParser
   turn       = ('t'|'turn')                %{ set_cmd('turn', p, pe); cp = p };
   river      = ('r'|'river')               %{ set_cmd('river', p, pe); cp = p };
   showdown   = ('sh'|'show'|'showdown')    %{ set_cmd('show', p, pe); cp = p };
+  winner     = ('w'| 'win'|'winner')       %{ set_cmd('win', p, pe); cp = p };
   status_cmd = (new_hand|new_hand_t|hero|preflop|flop|turn|river|showdown);
 
   hand_opts = space+ (blinds|seating_opts|big_blind|small_blind|ante)
@@ -207,8 +216,9 @@ class FbPokerbotParser::MessageParser
   cmd_turn  = turn space+ (card|seat_actions) (space+ (card|seat_actions))?;
   cmd_river = river space+ (card|seat_actions) (space+ (card|seat_actions))?;
   cmd_show  = showdown space+ seat_cards+;
+  cmd_win   = winner space+ (seat|'hero') (space+ (seat|'hero'))* %parseWinners;
 
-  commands = (cmd_nh|cmd_nht|cmd_hero|cmd_pre|cmd_flop|cmd_turn|cmd_river|cmd_show|status_cmd);
+  commands = (cmd_nh|cmd_nht|cmd_hero|cmd_pre|cmd_flop|cmd_turn|cmd_river|cmd_show|cmd_win|status_cmd);
 
   main := |*
     commands;
@@ -245,6 +255,7 @@ class FbPokerbotParser::MessageParser
     @players    = {}
     @hero       = {}
     @blinds     = {}
+    @winners    = []
     @amount     = nil
     @_curr_seat = nil
 
@@ -314,5 +325,10 @@ class FbPokerbotParser::MessageParser
     @players[@_curr_seat] ||= {}
     @players[@_curr_seat][:cards] = @cards.dup
     @cards = []
+  end
+
+  def set_winners(data)
+    seats = data.split(" ")
+    @winners = seats.select {|seat| VALID_SEATS.include?(seat) || seat == "hero" }
   end
 end

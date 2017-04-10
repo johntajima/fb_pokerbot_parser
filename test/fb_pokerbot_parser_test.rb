@@ -326,7 +326,6 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
 
   test "#new_hand_tourney parses hand syntax with blinds and player options" do
     msg = FbPokerbotParser::MessageParser.new("nt 1000/2000/100 9p 4h 3b")
-    p msg.blinds
     assert_equal :new_tourney_hand, msg.command
     assert_equal 9, msg.options[:players]
     assert_equal 4, msg.options[:hero]
@@ -335,19 +334,29 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal 2000, msg.blinds[:bb]
     assert_equal 100, msg.blinds[:ante]
 
-    msg = FbPokerbotParser::MessageParser.new("nt 1/2 9p 4h 3b bb 2000 ante 100")
+    msg = FbPokerbotParser::MessageParser.new("nt 9p 3b 1000/2000/100 4h")
     assert_equal :new_tourney_hand, msg.command
     assert_equal 9, msg.options[:players]
     assert_equal 4, msg.options[:hero]
     assert_equal 3, msg.options[:button]    
+    assert_equal 1000, msg.blinds[:sb]
+    assert_equal 2000, msg.blinds[:bb]
+    assert_equal 100, msg.blinds[:ante]
+    
+    msg = FbPokerbotParser::MessageParser.new("nt bb 2000 ante 100")
+    assert_equal :new_tourney_hand, msg.command
     assert_equal 1000, msg.blinds[:sb]
     assert_equal 2000, msg.blinds[:bb]
     assert_equal 100, msg.blinds[:ante]
   end
 
-
   # hero/hole cards & stacks
+  
   test "#hero accepts hole cards and stack size options" do
+    msg = FbPokerbotParser::MessageParser.new("hero KdAh 200")
+    expected = {:stack => 200}
+    assert_equal expected, msg.hero
+    assert_equal ["Kd", "Ah"], msg.hole_cards
   end
 
   # preflop action 

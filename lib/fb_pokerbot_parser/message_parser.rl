@@ -6,12 +6,14 @@ class FbPokerbotParser::MessageParser
                 :options, 
                 :cards, 
                 :actions, 
-                :hole_cards, 
+                :players,
+                :hole_cards,                 
                 :flop, :turn, :river,
                 :amount,
                 :blinds,
                 :hero
 
+  VALID_SEATS = %w| utg utg1 utg2 utg3 lj hj co btn sb bb |
 
   COMMANDS = {
     "nh"       => :new_hand,
@@ -52,7 +54,9 @@ class FbPokerbotParser::MessageParser
   machine pokerbot;
 
   action parseCard {
+    #p "[#{data[cp..(p-1)].pack('c*')}]"
     parseCard(data[cp..(p-1)].pack('c*').strip)
+    
     cp = p
   }
   action setFlop {
@@ -120,11 +124,26 @@ class FbPokerbotParser::MessageParser
     cp = p
   }
 
+  action parseSeatCards{
+    parse_seat_cards(data[cp..p].pack('c*').strip)
+    cp = p 
+  }
+
+  action setSeat {
+    val = data[cp..(p-1)].pack('c*').strip
+    set_curr_seat(val)
+    cp = p
+  }
+
+  action setSeatCards {
+    assign_cards_to_seat
+  }
+
   space_or_end = space+ | zlen;
 
   # card definitions
-  suit       = ('s'|'S'|'h'|'H'|'d'|'D'|'c'|'C'){1};
-  cardval    = ('a'|'A'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'j'|'J'|'q'|'Q'|'k'|'K'){1};
+  suit       = ('s'|'S'|'h'|'H'|'d'|'D'|'c'|'C'|'x'|'X'){1};
+  cardval    = ('a'|'A'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'j'|'J'|'q'|'Q'|'k'|'K'|'x'|'X'){1};
   card       = (cardval.suit){1} %parseCard;
   cards      = (card space_or_end)+;
   hole_cards = (card space_or_end){2} %setHoleCards;
@@ -133,6 +152,7 @@ class FbPokerbotParser::MessageParser
   # seat definitions
   seat       = 'utg'|'utg1'|'utg2'|'utg3'|'lj'|'hj'|'co'|'btn'|'sb'|'bb';
   seat_pos   = '1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10';
+  seat_cards = seat space+ %setSeat (card space_or_end){2} %setSeatCards;
 
   stack      = seat space+ digit+ %set_stack_size;
   hero_stack = digit+ %set_hero_stack;
@@ -184,11 +204,11 @@ class FbPokerbotParser::MessageParser
   cmd_hero  = hero hero_opts;
   cmd_pre   = preflop space+ seat_actions;
   cmd_flop  = flop space+ (flop_cards|seat_actions) (space+ (flop_cards|seat_actions))?;
-  cmd_turn  = (turn  space+);
-  cmd_river = (river . space+);
-  cmd_show  = (showdown . space+);
+  cmd_turn  = turn space+ (card|seat_actions) (space+ (card|seat_actions))?;
+  cmd_river = river space+ (card|seat_actions) (space+ (card|seat_actions))?;
+  cmd_show  = showdown space+ seat_cards+;
 
-  commands = (cmd_nh|cmd_nht|cmd_hero|cmd_pre|cmd_flop|status_cmd);
+  commands = (cmd_nh|cmd_nht|cmd_hero|cmd_pre|cmd_flop|cmd_turn|cmd_river|cmd_show|status_cmd);
 
   main := |*
     commands;
@@ -226,6 +246,7 @@ class FbPokerbotParser::MessageParser
     @hero       = {}
     @blinds     = {}
     @amount     = nil
+    @_curr_seat = nil
 
     %% write init;
     %% write exec;
@@ -234,7 +255,6 @@ class FbPokerbotParser::MessageParser
   def set_cmd(key, p, pe)
     @command = COMMANDS.fetch(key, nil)
     set_status if pe == p
-    puts "Command is #{@command} status request? #{@status}"
   end
 
   def set_status
@@ -284,5 +304,15 @@ class FbPokerbotParser::MessageParser
 
   def set_hero_stack(data)
     @hero[:stack] = data.to_i
+  end
+
+  def set_curr_seat(data)
+    @_curr_seat = data.to_sym if VALID_SEATS.include?(data)
+  end
+
+  def assign_cards_to_seat
+    @players[@_curr_seat] ||= {}
+    @players[@_curr_seat][:cards] = @cards.dup
+    @cards = []
   end
 end

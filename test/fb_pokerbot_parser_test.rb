@@ -24,6 +24,15 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     assert_equal [], msg.cards
   end
 
+  test "#card supports xx for unknown cards" do
+    msg = FbPokerbotParser::MessageParser.new(".test card ax")
+    assert_equal ['Ax'], msg.cards
+    msg = FbPokerbotParser::MessageParser.new(".test card xc")
+    assert_equal ['Xc'], msg.cards
+    msg = FbPokerbotParser::MessageParser.new(".test card xx")
+    assert_equal ['Xx'], msg.cards
+  end
+ 
   # hole-cards
 
   test "#hole_cards parses two cards with no space" do
@@ -393,6 +402,67 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     msg = FbPokerbotParser::MessageParser.new("flop check btn bet 10 fold")
     assert_equal :flop, msg.command
     assert_equal 3, msg.actions.count
+  end
+
+  # turn action
+
+  test "#turn accepts card" do
+    msg = FbPokerbotParser::MessageParser.new("turn ah")
+    assert_equal :turn, msg.command
+    assert_equal ["Ah"], msg.cards
+  end
+
+  test "#turn accepts card and seat actions" do
+    msg = FbPokerbotParser::MessageParser.new("turn ah check btn bet 10 fold")
+    assert_equal :turn, msg.command
+    assert_equal ["Ah"], msg.cards
+    assert_equal 3, msg.actions.count
+
+    msg = FbPokerbotParser::MessageParser.new("turn check btn bet 10 fold ah ")
+    assert_equal :turn, msg.command
+    assert_equal ["Ah"], msg.cards
+    assert_equal 3, msg.actions.count
+  end
+
+  test "#turn accepts seat actions only" do
+    msg = FbPokerbotParser::MessageParser.new("turn check btn bet 10 fold")
+    assert_equal :turn, msg.command
+    assert_equal 3, msg.actions.count
+  end
+
+  # river action
+
+  test "#river accepts card" do
+    msg = FbPokerbotParser::MessageParser.new("r ah")
+    assert_equal :river, msg.command
+    assert_equal ["Ah"], msg.cards
+  end
+
+  test "#river accepts card and seat actions" do
+    msg = FbPokerbotParser::MessageParser.new("river ah check btn bet 10 fold")
+    assert_equal :river, msg.command
+    assert_equal ["Ah"], msg.cards
+    assert_equal 3, msg.actions.count
+
+    msg = FbPokerbotParser::MessageParser.new("river check btn bet 10 fold ah ")
+    assert_equal :river, msg.command
+    assert_equal ["Ah"], msg.cards
+    assert_equal 3, msg.actions.count
+  end
+
+  test "#river accepts seat actions only" do
+    msg = FbPokerbotParser::MessageParser.new("r check btn bet 10 fold")
+    assert_equal :river, msg.command
+    assert_equal 3, msg.actions.count
+  end
+
+  test "#show accepts seat and card information" do
+    msg = FbPokerbotParser::MessageParser.new("sh btn ac kh")
+    assert_equal 2, msg.players.fetch(:btn).fetch(:cards).count
+
+    msg = FbPokerbotParser::MessageParser.new("sh btn ac kh co 4d 4h")
+    assert_equal ["Ac", "Kh"], msg.players.fetch(:btn).fetch(:cards)
+    assert_equal ["4d", "4h"], msg.players.fetch(:co).fetch(:cards)
   end
 
 

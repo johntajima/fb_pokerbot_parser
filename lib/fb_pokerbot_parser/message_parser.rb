@@ -56,12 +56,60 @@ class FbPokerbotParser::MessageParser
   }
 
 
-# line 239 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 238 "lib/fb_pokerbot_parser/message_parser.rl"
+
+
+  # message object:
+  # 
+  # msg.to_hash
+  # {
+  #   command: :new_hand,
+  #   players: {
+  #     btn : {
+  #       cards: [],
+  #       stack: 100
+  #     },
+  #     ...
+  #     ...
+  #     hero : {
+  #       cards: [],
+  #       stack: [],
+  #       seat: x,
+
+  #     }
+  #   },
+  #   options: {
+  #     sb: 1,
+  #     bb: 2,
+  #     ante: nil,
+  #     players: 9,
+  #     btn: 5,
+  #     hero: 2
+  #   },
+  #   cards: [],
+  #   flop: [xx,xx,xx],
+  #   turn: [xx],
+  #   river: [xx],
+  #   actions: {
+  #     preflop: [
+  #       seat: x, action: :bet, amount: 100,
+  #       seat: 'all', action: :fold
+  #     ],
+  #     flop: [
+  #       ...,
+  #       ...
+  #     ],
+  #     turn: [],
+  #     river: [],
+  #     showdown: []
+  #   },
+  #   winners: []
+  # }
 
 
   def initialize(data)
     
-# line 65 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 113 "lib/fb_pokerbot_parser/message_parser.rb"
 class << self
 	attr_accessor :_pokerbot_actions
 	private :_pokerbot_actions, :_pokerbot_actions=
@@ -1741,7 +1789,7 @@ end
 self.pokerbot_en_main = 561;
 
 
-# line 243 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 290 "lib/fb_pokerbot_parser/message_parser.rl"
     data = data.unpack("c*") if data.is_a?(String)
     eof  = data.length
     cp   = 0
@@ -1763,7 +1811,7 @@ self.pokerbot_en_main = 561;
     @_curr_seat = nil
 
     
-# line 1767 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 1815 "lib/fb_pokerbot_parser/message_parser.rb"
 begin
 	p ||= 0
 	pe ||= data.length
@@ -1773,9 +1821,9 @@ begin
 	act = 0
 end
 
-# line 264 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 311 "lib/fb_pokerbot_parser/message_parser.rl"
     
-# line 1779 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 1827 "lib/fb_pokerbot_parser/message_parser.rb"
 begin
 	_klen, _trans, _keys, _acts, _nacts = nil
 	_goto_level = 0
@@ -1809,7 +1857,7 @@ begin
 		begin
 ts = p
 		end
-# line 1813 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 1861 "lib/fb_pokerbot_parser/message_parser.rb"
 		end # from state action switch
 	end
 	if _trigger_goto
@@ -1979,99 +2027,98 @@ when 13 then
 		begin
 
     val = data[cp..(p-1)].pack('c*').strip
-    p val
     set_winners(val)
   		end
 when 14 then
-# line 185 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 184 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 15 then
-# line 186 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 185 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 16 then
-# line 187 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 186 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 17 then
-# line 194 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 193 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('nh', p, pe); cp = p 		end
 when 18 then
-# line 195 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 194 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('nt', p, pe); cp = p		end
 when 19 then
-# line 196 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 195 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('hero', p, pe); cp = p 		end
 when 20 then
-# line 197 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 196 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('pre', p, pe); cp = p 		end
 when 21 then
-# line 198 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 197 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('flop', p, pe); cp = p 		end
 when 22 then
-# line 199 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 198 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('turn', p, pe); cp = p 		end
 when 23 then
-# line 200 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 199 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('river', p, pe); cp = p 		end
 when 24 then
-# line 201 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 200 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('show', p, pe); cp = p 		end
 when 25 then
-# line 202 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 201 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  set_cmd('win', p, pe); cp = p 		end
 when 26 then
-# line 226 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 225 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 27 then
-# line 227 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 226 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 28 then
-# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 227 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 29 then
-# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 30 then
-# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 31 then
-# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 32 then
-# line 232 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 33 then
-# line 233 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 232 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 34 then
-# line 234 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 233 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 35 then
-# line 235 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 234 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 36 then
-# line 236 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 235 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 cp = p		end
 when 40 then
@@ -2080,103 +2127,103 @@ when 40 then
 te = p+1
 		end
 when 41 then
-# line 225 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 224 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 act = 1;		end
 when 42 then
-# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 act = 5;		end
 when 43 then
-# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 act = 7;		end
 when 44 then
-# line 232 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 act = 8;		end
 when 45 then
-# line 225 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 224 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 46 then
-# line 226 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 225 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 47 then
-# line 227 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 226 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 48 then
-# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 227 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 49 then
-# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 50 then
-# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 51 then
-# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 52 then
-# line 232 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 53 then
-# line 233 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 232 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 54 then
-# line 234 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 233 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 55 then
-# line 235 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 234 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 56 then
-# line 236 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 235 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
 te = p
 p = p - 1;		end
 when 57 then
-# line 225 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 224 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  begin p = ((te))-1; end
 		end
 when 58 then
-# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 228 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  begin p = ((te))-1; end
 		end
 when 59 then
-# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 229 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  begin p = ((te))-1; end
 		end
 when 60 then
-# line 231 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 230 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  begin p = ((te))-1; end
 		end
 when 61 then
-# line 236 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 235 "lib/fb_pokerbot_parser/message_parser.rl"
 		begin
  begin p = ((te))-1; end
 		end
@@ -2197,7 +2244,7 @@ end
 end
 end 
 			end
-# line 2201 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 2248 "lib/fb_pokerbot_parser/message_parser.rb"
 			end # action switch
 		end
 	end
@@ -2222,7 +2269,7 @@ when 38 then
 		begin
 act = 0
 		end
-# line 2226 "lib/fb_pokerbot_parser/message_parser.rb"
+# line 2273 "lib/fb_pokerbot_parser/message_parser.rb"
 		end # to state action switch
 	end
 	if _trigger_goto
@@ -2253,7 +2300,7 @@ end
 	end
 	end
 
-# line 265 "lib/fb_pokerbot_parser/message_parser.rl"
+# line 312 "lib/fb_pokerbot_parser/message_parser.rl"
   end
 
   def set_cmd(key, p, pe)
@@ -2324,4 +2371,39 @@ end
     seats = data.split(" ")
     @winners = seats.select {|seat| VALID_SEATS.include?(seat) || seat == "hero" }
   end
+
+  def to_hash
+    {
+      command: @command,
+      status_command: @status,
+      players: {},
+      options: {},
+      actions: {},
+      cards: {
+        flop: [],
+        turn: [],
+        river: [],
+        hero: [],
+        # <:seat> : []
+      },
+      winners: []
+    }
+  end
+
+  # players = {
+  #   btn: {
+  #     seat: 1-9,
+  #     stack: 1000,
+  #     cards: [],
+  #     name: ''
+  #   },
+  #   co: {
+  #     seat: 1-9,
+  #     stack: 1000,
+  #     cards: [],
+  #     name: ''
+  #   }
+  # }
+
+
 end

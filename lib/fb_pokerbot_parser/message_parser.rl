@@ -4,14 +4,15 @@ class FbPokerbotParser::MessageParser
   attr_accessor :command, 
                 :status,
                 :options, 
-                :cards, 
-                :actions, 
                 :players,
+                :actions, 
+                :cards, 
+                :winners,
+
                 :hole_cards,                 
                 :flop, :turn, :river,
                 :amount,
                 :blinds,
-                :winners,
                 :hero
 
   VALID_SEATS = %w| utg utg1 utg2 utg3 lj hj co btn sb bb |
@@ -57,14 +58,13 @@ class FbPokerbotParser::MessageParser
   machine pokerbot;
 
   action parseCard {
-    #p "[#{data[cp..(p-1)].pack('c*')}]"
-    parseCard(data[cp..(p-1)].pack('c*').strip)
-    
+    parseCard(data[cp..(p-1)].pack('c*').strip)    
     cp = p
   }
   action setFlop {
     @flop = @cards if @cards.count == 3
   }
+
   action setHoleCards {
     @hole_cards = @cards if @cards.count == 2
   }
@@ -237,6 +237,54 @@ class FbPokerbotParser::MessageParser
 
 }%%
 
+  # message object:
+  # 
+  # msg.to_hash
+  # {
+  #   command: :new_hand,
+  #   players: {
+  #     btn : {
+  #       cards: [],
+  #       stack: 100
+  #     },
+  #     ...
+  #     ...
+  #     hero : {
+  #       cards: [],
+  #       stack: [],
+  #       seat: x,
+
+  #     }
+  #   },
+  #   options: {
+  #     sb: 1,
+  #     bb: 2,
+  #     ante: nil,
+  #     players: 9,
+  #     btn: 5,
+  #     hero: 2
+  #   },
+  #   cards: [],
+  #   flop: [xx,xx,xx],
+  #   turn: [xx],
+  #   river: [xx],
+  #   actions: {
+  #     preflop: [
+  #       seat: x, action: :bet, amount: 100,
+  #       seat: 'all', action: :fold
+  #     ],
+  #     flop: [
+  #       ...,
+  #       ...
+  #     ],
+  #     turn: [],
+  #     river: [],
+  #     showdown: []
+  #   },
+  #   winners: []
+  # }
+
+
   def initialize(data)
     %% write data;
     data = data.unpack("c*") if data.is_a?(String)
@@ -245,17 +293,18 @@ class FbPokerbotParser::MessageParser
 
     @status     = false   # true if status request
     @command    = ""
-    @cards      = []
     @options    = {}
+    @players    = {}
     @actions    = []
+    @cards      = []
+    @winners    = []
+
     @flop       = []
     @turn       = []
     @river      = []
     @hole_cards = []
-    @players    = {}
     @hero       = {}
     @blinds     = {}
-    @winners    = []
     @amount     = nil
     @_curr_seat = nil
 
@@ -331,4 +380,39 @@ class FbPokerbotParser::MessageParser
     seats = data.split(" ")
     @winners = seats.select {|seat| VALID_SEATS.include?(seat) || seat == "hero" }
   end
+
+  def to_hash
+    {
+      command: @command,
+      status_command: @status,
+      players: {},
+      options: {},
+      actions: {},
+      cards: {
+        flop: [],
+        turn: [],
+        river: [],
+        hero: [],
+        # <:seat> : []
+      },
+      winners: []
+    }
+  end
+
+  # players = {
+  #   btn: {
+  #     seat: 1-9,
+  #     stack: 1000,
+  #     cards: [],
+  #     name: ''
+  #   },
+  #   co: {
+  #     seat: 1-9,
+  #     stack: 1000,
+  #     cards: [],
+  #     name: ''
+  #   }
+  # }
+
+
 end

@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'pp'
 
 class FbPokerbotParserTest < ActiveSupport::TestCase
 
@@ -243,6 +244,7 @@ class FbPokerbotParserTest < ActiveSupport::TestCase
     commands.each do |command|
       msg = FbPokerbotParser::MessageParser.new(command)
       assert msg.status_only
+      assert_equal FbPokerbotParser::MessageParser::COMMANDS.fetch(command), msg.command
     end
   end
 

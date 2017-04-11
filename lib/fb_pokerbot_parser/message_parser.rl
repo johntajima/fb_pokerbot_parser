@@ -16,6 +16,7 @@ class FbPokerbotParser::MessageParser
 
   COMMANDS = {
     "nh"       => :new_hand,
+    "new"      => :new_hand,
     "nt"       => :new_tourney_hand,
     "hero"     => :hero,
     "pre"      => :preflop,
@@ -301,6 +302,9 @@ class FbPokerbotParser::MessageParser
 
     %% write init;
     %% write exec;
+
+    # post-process data
+    set_players_data
   end
 
   def set_cmd(key, p, pe)
@@ -408,21 +412,23 @@ class FbPokerbotParser::MessageParser
     @winners = seats.select {|seat| VALID_SEATS.include?(seat) || seat == "hero" }
   end
 
+  def set_players_data
+    return unless btn_seat = @options.fetch(:button,nil)
+    return unless num_players = @options.fetch(:players, nil)
+    (1..num_players).each do |seat_num|
+
+    end
+  end
+
   def to_hash
     {
       command: @command,
       status_only: @status_only,
-      players: {},
-      options: {},
-      actions: {},
-      cards: {
-        flop: [],
-        turn: [],
-        river: [],
-        hero: [],
-        # <:seat> : []
-      },
-      winners: []
+      players: @players,
+      options: @options,
+      actions: @actions,
+      cards: @cards,
+      winners: @winners
     }
   end
 
